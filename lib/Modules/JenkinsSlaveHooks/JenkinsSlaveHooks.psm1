@@ -144,10 +144,15 @@ function Start-InstallHook {
     $installerPath = Get-JavaInstaller
     $unattendedParams = @("INSTALLDIR=`"$JAVA_DIR`"", "/L", "$env:APPDATA\java_log.txt", "/s")
     Write-JujuLog "Installing Java"
-    $ret = Start-Process -FilePath $installerPath -ArgumentList $unattendedParams -Wait -PassThru
-    if($ret.ExitCode) {
-        Throw "Failed to install Java"
+    Start-Process -FilePath $installerPath -ArgumentList $unattendedParams -Wait -PassThru
+
+    try {
+        & "$JAVA_DIR\bin\java.exe" -version
     }
+    catch {
+        Write-JujuLog "Java installation failed"
+    }
+
     Remove-Item $installerPath
 }
 
