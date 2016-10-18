@@ -62,8 +62,6 @@ function Get-SlaveAgent {
 }
 
 function Get-RelationContext {
-    $jujulocalunit = Get-JujuLocalUnit
-    $slavehost = $jujulocalunit -replace '\/','-'
     $required = @{
         "url"=$null;
         "username"=$null;
@@ -79,8 +77,7 @@ function Get-RelationContext {
 }
 
 function Get-JnlpContext {
-    $jujulocalunit = Get-JujuLocalUnit
-    $slavehost = $jujulocalunit -replace '\/','-'
+    $slavehost = $env:computername
     $ctx = Get-RelationContext
     $jenkins_url = $ctx['url']
     $jenkins_username = $ctx['username']
@@ -157,9 +154,8 @@ function Start-InstallHook {
 }
 
 function Start-ConfigChangedHook {
-#    $slaveservice = Get-Service $services["jenkins-slave"]["service"] -ErrorAction SilentlyContinue
-#    Start-ConfigTemplate
     $slave_redownload = Get-JujuCharmConfig -Scope 'slave-redownload'
+    $executors = Get-JujuCharmConfig -Scope 'executors'
     if ($slave_redownload) {
         Get-SlaveAgent
         Stop-Service -Name $services["jenkins-slave"]["service"] -ErrorAction SilentlyContinue
@@ -168,22 +164,29 @@ function Start-ConfigChangedHook {
 }
 
 function Start-RelationJoinedHook {
-    $jujulocalunit = Get-JujuLocalUnit
-    $slavehost = $jujulocalunit -replace '\/','-'
-    $executors = Get-WmiObject -Class Win32_ComputerSystem | select -ExpandProperty "NumberOfLogicalProcessors"
-    $config_labels = Get-JujuCharmConfig -Scope 'labels'
-    $labels= (Get-WmiObject -class Win32_OperatingSystem).Caption
-    if ($config_labels) {
-        $labels = $config_labels}
+    $slavehost = $env:computername
+    $config_executors = Get-JujuCharmConfig -Scope 'executors'
+    if (!$config_executors) {
+        $executors = Get-WmiObject -Class Win32_ComputerSystem | select -ExpandProperty "NumberOfLogicalProcessors"
+    }
     else {
-        $labels=(Get-WmiObject -class Win32_OperatingSystem).Caption}
+        $executors = Get-JujuCharmConfig -Scope 'executors'
+    }
+
+    $config_labels = Get-JujuCharmConfig -Scope 'labels'
+    if ($config_labels) {
+        $labels = $config_labels
+    }
+    else {
+        $labels=(Get-WmiObject -class Win32_OperatingSystem).Caption
+    }
 
     $settings = @{
 	'slavehost' = $slavehost
 	'executors' = $executors
 	'labels' = $labels
 	}
-	$rids = Get-JujuRelationIds -Relation 'jenkins-slave'
+	$rids = Get-JujuRelationIds -Relation 'slave'
 	Set-JujuRelation -RelationId $rids $settings
     juju-log.exe "Running relationName joined hook."
 }
