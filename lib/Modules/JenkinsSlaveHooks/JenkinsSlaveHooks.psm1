@@ -77,7 +77,7 @@ function Get-RelationContext {
 }
 
 function Get-JnlpContext {
-    $slavehost = $env:computername
+    $slavehost = ($env:computername).ToLower()
     $ctx = Get-RelationContext
     $jenkins_url = $ctx['url']
     $jenkins_username = $ctx['username']
@@ -164,7 +164,7 @@ function Start-ConfigChangedHook {
 }
 
 function Start-RelationJoinedHook {
-    $slavehost = $env:computername
+    $slavehost = ($env:computername).ToLower()
     $config_executors = Get-JujuCharmConfig -Scope 'executors'
     if (!$config_executors) {
         $executors = Get-WmiObject -Class Win32_ComputerSystem | select -ExpandProperty "NumberOfLogicalProcessors"
