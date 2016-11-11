@@ -8,6 +8,7 @@ options:
     description: "Label for the slave node. If not set it will be automatically set as OS version"
   executors:
     type: int
+    default: 1
     description: "Number of executors. If no value is set then it defaults to the number of the slaves CPU cores."
   force-redownload:
     type: boolean
