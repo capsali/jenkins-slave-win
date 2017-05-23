@@ -62,9 +62,15 @@ function Get-SlaveAgent {
 }
 
 function Disable-JavaAutoUpdate {
+    $OS_version = (Get-CimInstance Win32_OperatingSystem).Caption
     $registryPath = "HKLM:\SOFTWARE\WOW6432Node\JavaSoft\Java Update\Policy"
     $name = "EnableJavaUpdate"
     $value = "0"
+    
+    if ( $OS_version -match "Hyper-V" ) {
+        return
+    }
+    
     $item_value = Get-ItemProperty -Path $registryPath -Name $name | select -exp $name
     if ($item_value -ne $value) {
         write-host "Java Auto Update is enabled. Disabling it."
