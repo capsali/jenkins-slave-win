@@ -61,6 +61,22 @@ function Get-SlaveAgent {
     return $SlaveAgentPath
 }
 
+function Disable-JavaAutoUpdate {
+    $registryPath = "HKLM:\SOFTWARE\WOW6432Node\JavaSoft\Java Update\Policy"
+    $name = "EnableJavaUpdate"
+    $value = "0"
+    $item_value = Get-ItemProperty -Path $registryPath -Name $name | select -exp $name
+    if ($item_value -ne $value) {
+        write-host "Java Auto Update is enabled. Disabling it."
+        New-ItemProperty -Path $registryPath -Name $name -Value $value -PropertyType DWORD -Force | Out-Null
+        $new_item_value = Get-ItemProperty -Path $registryPath -Name $name | select -exp $name
+        write-host "Java Auto Update is now set to $new_item_value"
+    }
+    else {
+        write-host "Java Auto Update is disabled"
+    }
+}
+
 function Get-RelationContext {
     $required = @{
         "url"=$null;
@@ -139,7 +155,7 @@ function Start-SetJenkinsService {
 
 function Start-InstallHook {
     $installerPath = Get-JavaInstaller
-    $unattendedParams = @("INSTALLDIR=`"$JAVA_DIR`"", "/L", "$env:APPDATA\java_log.txt", "/s")
+    $unattendedParams = @("INSTALLDIR=`"$JAVA_DIR`"", "AUTO_UPDATE=Disable", "/L", "$env:APPDATA\java_log.txt", "/s")
     Write-JujuLog "Installing Java"
     Start-Process -FilePath $installerPath -ArgumentList $unattendedParams -Wait -PassThru
 
@@ -154,6 +170,9 @@ function Start-InstallHook {
 }
 
 function Start-ConfigChangedHook {
+    
+    Disable-JavaAutoUpdate
+    
     $slave_redownload = Get-JujuCharmConfig -Scope 'slave-redownload'
     $executors = Get-JujuCharmConfig -Scope 'executors'
     if ($slave_redownload) {
